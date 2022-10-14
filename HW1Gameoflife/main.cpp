@@ -111,19 +111,36 @@ void countCell(Grid<char> &bound, int &x ,int &y)
  * y - row
  */
 {
-    //corner
-    // edge
-    //inner
     int row = bound.numRows();
     int col = bound.numCols();
+    int num = 0;
     if((x==0||x==(col-1))&&(y==0||y==(row-1)))
     {
         //corner
         if(x==0&&y==0)
         {
-//            bound(x,y+1)
-//            bound(x+1,y)
-//            bound(x+1,y+1)
+            if(bound[x][y+1]== 'X') num++;
+            if(bound[x+1][y]== 'X') num++;
+            if(bound[x+1][y+1]=='X') num++;
+        }
+        //
+        if(x==0&&y==row-1)
+        {
+            if(bound[x][y-1]== 'X') num++;
+            if(bound[x+1][y]== 'X') num++;
+            if(bound[x+1][y-1]=='X') num++;
+        }
+        if(x==col-1&&y==0)
+        {
+            if(bound[x][y+1]== 'X') num++;
+            if(bound[x-1][y]== 'X') num++;
+            if(bound[x-1][y+1]=='X') num++;
+        }
+        if(x==col-1&&y==row-1)
+        {
+            if(bound[x-1][y]== 'X') num++;
+            if(bound[x][y-1]== 'X') num++;
+            if(bound[x-1][y-1]=='X') num++;
         }
 
     }
