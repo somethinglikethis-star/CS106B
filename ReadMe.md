@@ -1,1 +1,1 @@
--[ ] #HW1 Game of life 
+-[] # HW1 Game of life 
