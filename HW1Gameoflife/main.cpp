@@ -4,10 +4,37 @@
 #include "filelib.h"
 #include "strlib.h"
 #include "grid.h"
-//#include "lifegui.h"
+#include "lifegui.h"
 using namespace std;
+void WelcomeInfoDisplay(void);
+string Getchoice(void);
+void GetMatrix(ifstream &file,Grid<char> &bound);
+void LoadFile(Grid<char>&bound);
+int CountCell(Grid<char> &bound, int &row, int &col, bool &mode);
+void showGrid(Grid<char>&bound);
+Grid<char> GenNextBound(Grid<char>&bound, bool mode);
+void GenNext(Grid<char>&bound,bool mode);
+int getFrames();
+void GuiDisplay(LifeGUI &life,Grid<char> &bound);
 
-void InfoDisplay(void)
+
+
+
+
+
+
+int main()
+{
+    Grid<char>bound(2,2);//default
+    WelcomeInfoDisplay();
+    LoadFile(bound);
+    bool mode = getYesOrNo("Should the simulation wrap around the grid (y/n)");
+    showGrid(bound);
+    GenNext(bound,mode);
+   return 0;
+}
+
+void WelcomeInfoDisplay(void)
 {
     cout<< "Welcome to the CS 106B Game of life, "<<endl;
     cout<< "a simulation of the lifecycle of a bacteria colony. "<<endl;
@@ -19,31 +46,113 @@ void InfoDisplay(void)
     cout<<endl;
     cout<<endl;
 }
-void getsize(ifstream &file,string &path,int &row , int &col)
+void GetMatrix(ifstream &file,Grid<char> &bound)
 {
     string s;
-    openFile(file,path);
-        getline(file,s);
-        row = stringToInteger(s);
-        getline(file,s);
-        col = stringToInteger(s);
-}
-Grid<char> getmatrix(ifstream &file,int&row , int &col)
-{
-    Grid<char>bound(row,col);
-    string s;
-    int i =0;
-    while(getline(file,s)&&i<row)
+    int r =0;
+    while(getline(file,s)&&r<bound.numRows())
     {
-        for(int j = 0;j!=col;j++)
-            bound[i][j] = s[j];
-        i++;
+        for(int c = 0;c!=bound.numCols();c++)
+            bound[r][c] = s[c];
+        r++;
     }
-    file.close();
-    return bound;
 }
+string Getchoice()
+{
+   string prompt = "a)nimate, t)tick, q)uit?";
+   string choice = getLine(prompt);
+   while(!(choice=="a"||choice=="t"||choice=="q")){
+       cout<<"Invalid choice; please try again."<<endl;
+       choice = getLine(prompt);
+   }
+   return choice;
+}
+void GenNext(Grid<char>&bound,bool mode){
+    string choice = Getchoice();
+    while(choice!="q"){
+        //run funcion about generate'
+        if(choice == "a"){
+            int frames = getFrames();
+            int f=1;
+            while(f<=frames)
+            {
+               //text version
+                clearConsole();
+                Grid<char> Next = GenNextBound(bound,mode);
+                showGrid(Next);
+                bound = Next;
+                  f++;
+                pause(500);
+                //gui
+               // GuiDisplay(life,Next);
+            }
+        }
+        if(choice == "t"){
+            Grid<char> Next = GenNextBound(bound,mode);
+            showGrid(Next);
+            bound = Next;
+        }
+        choice = Getchoice();
+    }
+    cout<<"Have a nice life!"<<endl;
+}
+void LoadFile(Grid<char>&bound)
+{
+    ifstream fileStream;
+    string numsStr;
+    string LineSymbol;
+     int rows;
+     int cols;
+    string filename = getLine("Grid input file name?");
+    while(!fileExists(filename)){
+       cout<<"Unable to open that file.  Try again."<<endl;
+       filename = getLine("Grid input file name?");
+    }
+        openFile(fileStream,filename);
+        getline(fileStream,numsStr);
+        rows = stringToInteger(numsStr);
+        getline(fileStream,numsStr);
+        cols = stringToInteger(numsStr);
+        bound.resize(rows,cols);
+        GetMatrix(fileStream,bound);
+        fileStream.close();
+}
+int CountCell(Grid<char> &bound, int &row, int &col, bool &mode){
+    int sum = 0;
+    int rows = bound.numRows();
+    int cols = bound.numCols();
+    if(mode==1){
+        for(int i=-1;i<2;i++){
+           if(bound[(row+i+rows)%rows][(col-1+cols)%cols] == 'X')
+               sum++;
+        }
+        for(int i=-1;i<2;i++){
+            if(bound[(row+i+rows)%rows][(col+1+cols)%cols] == 'X')
+                sum++;
+        }
+        if(bound[(row-1+rows)%rows][(col+cols)%cols] == 'X')
+            sum++;
+         if(bound[(row+1+rows)%rows][(col+cols)%cols] == 'X')
+            sum++;
+        return sum;
+    }
+    else{
+        for(int i=-1;i<2;i++){
+            if(bound.inBounds(row+i,col-1)&&bound[row+i][col-1]=='X')
+                sum++;
+        }
+        for(int i=1;i<2;i++){
+            if(bound.inBounds(row+i,col+1)&&bound[row+i][col+1]=='X')
+                sum++;
+        }
+        if(bound.inBounds(row-1,col)&&bound[row-1][col]=='X')
+            sum++;
+        if(bound.inBounds(row+1,col)&&bound[row+1][col]=='X')
+            sum++;
+        return sum;
+       }
 
-
+    }
 void showGrid(Grid<char>&bound)
 {
     for(int i =0 ; i<bound.numRows();i++)
@@ -52,198 +161,44 @@ void showGrid(Grid<char>&bound)
             cout<<bound[i][j];
         cout<<endl;
     }
-};
-void getRealPos(int&x,int&y,Grid<char> &bound,int &real_pos_x, int &real_pos_y)
-{
-
-    real_pos_x = (x+bound.numCols())%(bound.numCols());
-    real_pos_y = (y+bound.numRows())%(bound.numRows());
 }
-int cellCanLive(int &x ,int &y,Grid<char> &bound)
-/*
- * wrapping mode
- * x col 1
- * y row 0
-*/
-{
-    int sum = 0;
-    int pos_x, pos_y =0;
-    int y_temp,x_temp;
-    //-1 row
-    y_temp = y-1;
-    for(int i = -1;i<2;i++)
-    {
-        int x_temp = x+i;
-        getRealPos(x_temp,y_temp,bound,pos_x,pos_y);
-        if(bound[pos_y][pos_x]=='X')
-            sum++;
+Grid<char> GenNextBound(Grid<char>&bound, bool mode){
+    Grid<char> next = bound;
+    int cols = bound.numCols();
+    int rows = bound.numRows();
+    for(int r=0;r<rows;r++){
+        for(int c=0;c<cols;c++){
+            int NeighborCells = CountCell(bound,r,c,mode);
+            if(NeighborCells<2&&bound[r][c]=='X')
+                next[r][c] = '-';
+            if(NeighborCells==3&&bound[r][c]=='-')
+                next[r][c] = 'X';
+            if(NeighborCells>3&&bound[r][c]=='X')
+                next[r][c] = '-';
+        }
     }
-    //0 row
-    y_temp = y;
-    x_temp = x-1;
-    getRealPos(x_temp,y_temp,bound,pos_x,pos_y);
-    if(bound[pos_y][pos_x]=='X')
-    {
-        sum++;
-    }
-    x_temp = x+1;
-    getRealPos(x_temp,y_temp,bound,pos_x,pos_y);
-    if(bound[pos_y][pos_x]=='X')
-    {
-        sum++;
-    }
-    //+1 row
-    y_temp = y+1;
-    for(int i = -1;i<2;i++)
-    {
-        int x_temp = x+i;
-        getRealPos(x_temp,y_temp,bound,pos_x,pos_y);
-        if(bound[pos_y][pos_x]=='X')
-            sum++;
-    }
-
-    return sum;
+    return next;
 }
-void countCell(Grid<char> &bound, int &x ,int &y)
-/*
- * no-wrapp mode
- * x - col
- * y - row
- */
-{
-    int row = bound.numRows();
-    int col = bound.numCols();
-    int num = 0;
-    if((x==0||x==(col-1))&&(y==0||y==(row-1)))
-    {
-        //corner
-        if(x==0&&y==0)
-        {
-            if(bound[x][y+1]== 'X') num++;
-            if(bound[x+1][y]== 'X') num++;
-            if(bound[x+1][y+1]=='X') num++;
-        }
-        //
-        if(x==0&&y==row-1)
-        {
-            if(bound[x][y-1]== 'X') num++;
-            if(bound[x+1][y]== 'X') num++;
-            if(bound[x+1][y-1]=='X') num++;
-        }
-        if(x==col-1&&y==0)
-        {
-            if(bound[x][y+1]== 'X') num++;
-            if(bound[x-1][y]== 'X') num++;
-            if(bound[x-1][y+1]=='X') num++;
-        }
-        if(x==col-1&&y==row-1)
-        {
-            if(bound[x-1][y]== 'X') num++;
-            if(bound[x][y-1]== 'X') num++;
-            if(bound[x-1][y-1]=='X') num++;
-        }
-
+int getFrames(){
+    string prompt = "How many frames?";
+    string frames = getLine(prompt);
+    while(!stringIsInteger(frames)){
+        cout<<"Illegal integer format. Try again."<<endl;
+        frames = getLine(prompt);
     }
-    if(x==0&&y!=0&&y!=(row-1))
-    {
-        //left
-    }
-    if(x==(col-1)&&y!=0&&y!=(row-1))
-    {
-        //right
-    }
-    if(y==0&&x!=0&&x!=(col-1))
-    {
-        //top
-    }
-    if(y==(row-1)&&x!=0&&x!=(col-1))
-    {
-        //bottom
-    }
+    return stringToInteger(frames);
 }
-
-
-void GetNextGeneration(Grid<char> &bound,Grid<char> &next)
-{
-    for(int i = 0;i<bound.numRows();i++)
-    {
-        for(int j = 0 ; j<bound.numCols();j++)
-        {
-            int sum = cellCanLive(j,i,bound);
-            if(bound[i][j]=='-'&&sum==3)
-            {
-                   next[i][j] = 'X';
-                   continue;
+void GuiDisplay(LifeGUI &life,Grid<char> &bound){
+    bool state;
+    for(int r=0;r<bound.numRows();r++){
+        for(int c=0;c<bound.numCols();c++){
+            if(bound[r][c]=='X'){
+                state = true;
             }
-            if(bound[i][j]=='X'&&(sum==0||sum==1))
-            {
-                next[i][j] = '-';
-                continue;
+            else if(bound[r][c]=='-'){
+                state = false;
             }
-            if(bound[i][j]=='X'&&(sum==4||sum==5||sum==6||sum==7||sum==8))
-            {
-                next[i][j] = '-';
-                continue;
-            }
+            life.drawCell(r,c,state);
         }
     }
-}
-
-
-int main()
-{
-    string path = "./res/snowflake.txt";
-    ifstream file;
-    string command;
-    Grid<char> bound;
-    Grid<char> next;
-    int row,col;
-
-//    next = bound;
-//    showGrid(next);
-//    cout<<"            "<<endl;
-//    cout<<"            "<<endl;
-//    GetNextGeneration(bound,next);
-//    showGrid(next);
-
-
-    //user interface
-    InfoDisplay();
-    cout<<"Grid input file name?";
-    while(!fileExists(command = getLine()))
-    {
-
-        cout<<"Unable to open that file.  Try again."<<endl;
-        cout<<"Grid input file name?";
-     }
-        getsize(file,command,row,col);
-        bound =  getmatrix(file,row,col);
-        next = bound;
-     cout<<"Should the simulation wrap around the grid (y/n)?";
-     command = getLine();//assume 'yes'
-     if(command == "y") showGrid(bound);//select wrapp or no- wrapp
-     cout<<"a)nimate, t)ick, q)uit? ";
-     while((command=getLine())!="q")
-     {
-         if(command == "a")
-         {
-             cout<<"will come!"<<endl;
-         }
-         if(command == "t")
-         {
-             GetNextGeneration(bound,next);
-             bound = next;
-             showGrid(next);
-         }
-             cout<<"a)nimate, t)ick, q)uit? ";
-     }
-     cout<<"Have a nice life!"<<endl;
-
-
-
-
-
-
-
-    return 0;
 }
