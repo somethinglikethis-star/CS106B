@@ -12,11 +12,11 @@ void GetMatrix(ifstream &file,Grid<char> &bound);
 void LoadFile(Grid<char>&bound);
 int CountCell(Grid<char> &bound, int &row, int &col, bool &mode);
 void showGrid(Grid<char>&bound);
-Grid<char> GenNextBound(Grid<char>&bound, bool mode);
-void GenNext(Grid<char>&bound,bool mode);
+//Grid<char> GenNextBound(Grid<char>&bound, bool mode);
+void GenNext(Grid<char>&bound,bool mode,LifeGUI &life);
 int getFrames();
 void GuiDisplay(LifeGUI &life,Grid<char> &bound);
-
+Grid<char> GenNextBound(Grid<char>&bound, bool mode,LifeGUI &life);
 
 
 
@@ -26,11 +26,14 @@ void GuiDisplay(LifeGUI &life,Grid<char> &bound);
 int main()
 {
     Grid<char>bound(2,2);//default
+    LifeGUI life;
     WelcomeInfoDisplay();
     LoadFile(bound);
+    life.resize(bound.numRows(),bound.numCols());
     bool mode = getYesOrNo("Should the simulation wrap around the grid (y/n)");
     showGrid(bound);
-    GenNext(bound,mode);
+    GuiDisplay(life,bound);
+    GenNext(bound,mode,life);
    return 0;
 }
 
@@ -67,7 +70,7 @@ string Getchoice()
    }
    return choice;
 }
-void GenNext(Grid<char>&bound,bool mode){
+void GenNext(Grid<char>&bound,bool mode,LifeGUI &life){
     string choice = Getchoice();
     while(choice!="q"){
         //run funcion about generate'
@@ -78,18 +81,15 @@ void GenNext(Grid<char>&bound,bool mode){
             {
                //text version
                 clearConsole();
-                Grid<char> Next = GenNextBound(bound,mode);
-                showGrid(Next);
+                Grid<char> Next = GenNextBound(bound,mode,life);
                 bound = Next;
-                  f++;
-                pause(500);
-                //gui
-               // GuiDisplay(life,Next);
+                f++;
+                pause(50);
             }
         }
         if(choice == "t"){
-            Grid<char> Next = GenNextBound(bound,mode);
-            showGrid(Next);
+            Grid<char> Next = GenNextBound(bound,mode,life);
+            //showGrid(Next);
             bound = Next;
         }
         choice = Getchoice();
@@ -154,6 +154,9 @@ int CountCell(Grid<char> &bound, int &row, int &col, bool &mode){
 
     }
 void showGrid(Grid<char>&bound)
+/*
+ * text show cell function
+*/
 {
     for(int i =0 ; i<bound.numRows();i++)
     {
@@ -162,21 +165,35 @@ void showGrid(Grid<char>&bound)
         cout<<endl;
     }
 }
-Grid<char> GenNextBound(Grid<char>&bound, bool mode){
+Grid<char> GenNextBound(Grid<char>&bound, bool mode,LifeGUI &life){
+/*
+ * Calulate the next generation
+ * text show the next
+ * anmiate the change
+*/
     Grid<char> next = bound;
     int cols = bound.numCols();
     int rows = bound.numRows();
     for(int r=0;r<rows;r++){
         for(int c=0;c<cols;c++){
             int NeighborCells = CountCell(bound,r,c,mode);
-            if(NeighborCells<2&&bound[r][c]=='X')
+            if(NeighborCells<2&&bound[r][c]=='X'){
                 next[r][c] = '-';
-            if(NeighborCells==3&&bound[r][c]=='-')
+                life.drawCell(r,c,false);
+            }
+            if(NeighborCells==3&&bound[r][c]=='-'){
                 next[r][c] = 'X';
-            if(NeighborCells>3&&bound[r][c]=='X')
+                life.drawCell(r,c,true);
+            }
+
+            if(NeighborCells>3&&bound[r][c]=='X'){
                 next[r][c] = '-';
+                life.drawCell(r,c,false);
+            }
+
         }
     }
+    showGrid(next);
     return next;
 }
 int getFrames(){
@@ -189,7 +206,7 @@ int getFrames(){
     return stringToInteger(frames);
 }
 void GuiDisplay(LifeGUI &life,Grid<char> &bound){
-    bool state;
+    bool state=false;
     for(int r=0;r<bound.numRows();r++){
         for(int c=0;c<bound.numCols();c++){
             if(bound[r][c]=='X'){
