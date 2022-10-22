@@ -121,7 +121,7 @@ int CountCell(Grid<char> &bound, int &row, int &col, bool &mode){
     int sum = 0;
     int rows = bound.numRows();
     int cols = bound.numCols();
-    if(mode==1){
+    if(mode==true){
         for(int i=-1;i<2;i++){
            if(bound[(row+i+rows)%rows][(col-1+cols)%cols] == 'X')
                sum++;
@@ -136,12 +136,12 @@ int CountCell(Grid<char> &bound, int &row, int &col, bool &mode){
             sum++;
         return sum;
     }
-    else{
+    if(mode==false){
         for(int i=-1;i<2;i++){
             if(bound.inBounds(row+i,col-1)&&bound[row+i][col-1]=='X')
                 sum++;
         }
-        for(int i=1;i<2;i++){
+        for(int i=-1;i<2;i++){
             if(bound.inBounds(row+i,col+1)&&bound[row+i][col+1]=='X')
                 sum++;
         }
@@ -151,7 +151,7 @@ int CountCell(Grid<char> &bound, int &row, int &col, bool &mode){
             sum++;
         return sum;
        }
-
+    return -1;
     }
 void showGrid(Grid<char>&bound)
 /*
